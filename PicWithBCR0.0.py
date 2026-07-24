@@ -45,18 +45,18 @@ camera = init_camera()
 # 拍照函数
 # ==========================
 def take_photos(barcode):
+    global camera   # 必须放在函数最前面
+
     photo_paths = []
 
     for i in range(photo_count):
-        # 丢弃缓存帧（树莓派 USB 摄像头常见问题）
-        camera.read()
+        camera.read()  # 丢弃缓存帧
 
         ret, frame = camera.read()
         if not ret:
             print("⚠️ 摄像头读取失败，尝试重新初始化摄像头...")
             time.sleep(0.5)
-            global camera
-            camera = init_camera()
+            camera = init_camera()   # 这里才重新赋值
             continue
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
