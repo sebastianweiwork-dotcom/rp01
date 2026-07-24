@@ -16,10 +16,8 @@ force_resolution_enabled = False           # Force custom resolution
 force_resolution_width = 1920              # Forced width
 force_resolution_height = 1080             # Forced height
 
-# ==========================
-# Derived directories
-# ==========================
-csv_dir = root_dir
+csv_suffix = "_scan_log.csv"               # CSV suffix
+photo_suffix = "_photo"                    # Photo folder suffix
 
 # ==========================
 # Auto-detect camera (V4L2)
@@ -60,12 +58,25 @@ else:
     print("Resolution settings unchanged.")
 
 # ==========================
-# Create new CSV file per session
+# Helper: pure numeric timestamp
 # ==========================
-session_start_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-csv_file = os.path.join(csv_dir, f"{session_start_time}_session.csv")
+def ts():
+    """Return pure numeric timestamp: YYYYMMDD_HHMMSS"""
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
 
-print(f"Log file for this session: {csv_file}")
+# ==========================
+# Create temporary CSV + photo folder
+# ==========================
+session_start_ts = ts()
+
+temp_csv_name = f"{session_start_ts}_session{csv_suffix}"
+csv_file = os.path.join(root_dir, temp_csv_name)
+
+temp_photo_folder = os.path.join(root_dir, f"{session_start_ts}_session{photo_suffix}")
+os.makedirs(temp_photo_folder, exist_ok=True)
+
+print(f"Temporary CSV file: {csv_file}")
+print(f"Temporary photo folder: {temp_photo_folder}")
 
 # ==========================
 # Photo capture function (PNG)
@@ -99,10 +110,8 @@ def take_photos(barcode, photo_folder):
 print("Listening for barcode input (type 'quit' to exit)...")
 print(f"Output directory: {root_dir}")
 
-first_scan_time = None
+first_scan_ts = None
 first_scan_content = None
-last_scan_time = None
-last_scan_content = None
 
 with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
@@ -115,26 +124,15 @@ with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
                 print("Exiting program.")
                 break
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            timestamp = ts()
 
-            # Record first scan
-            if first_scan_time is None:
-                first_scan_time = timestamp
+            # Record first scan ONLY
+            if first_scan_ts is None:
+                first_scan_ts = timestamp
                 first_scan_content = barcode
 
-            # Record last scan
-            last_scan_time = timestamp
-            last_scan_content = barcode
-
-            # Create photo folder for this scan
-            folder_name = f"{first_scan_time}_{first_scan_content}_{last_scan_time}_{last_scan_content}_photo"
-            photo_folder = os.path.join(root_dir, folder_name)
-            os.makedirs(photo_folder, exist_ok=True)
-
-            print(f"Photo folder created: {photo_folder}")
-
             # Capture photos
-            photo_paths = take_photos(barcode, photo_folder)
+            photo_paths = take_photos(barcode, temp_photo_folder)
 
             # Write to CSV
             writer.writerow([timestamp, barcode, ";".join(photo_paths)])
@@ -146,13 +144,19 @@ with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
             break
 
 # ==========================
-# Rename CSV file after session ends
+# Rename CSV + photo folder using ONLY first scan info
 # ==========================
-if first_scan_time and last_scan_time:
-    new_csv_name = f"{first_scan_time}_{first_scan_content}_{last_scan_time}_{last_scan_content}.csv"
-    new_csv_path = os.path.join(csv_dir, new_csv_name)
+if first_scan_ts and first_scan_content:
+    final_name = f"{first_scan_ts}_{first_scan_content}"
 
-    os.rename(csv_file, new_csv_path)
-    print(f"Log file renamed to: {new_csv_path}")
+    final_csv = os.path.join(root_dir, final_name + csv_suffix)
+    final_photo_folder = os.path.join(root_dir, final_name + photo_suffix)
+
+    os.rename(csv_file, final_csv)
+    os.rename(temp_photo_folder, final_photo_folder)
+
+    print(f"Final CSV file: {final_csv}")
+    print(f"Final photo folder: {final_photo_folder}")
+
 else:
-    print("No scans recorded. No log file generated.")
+    print("No scans recorded. No final naming applied.")
