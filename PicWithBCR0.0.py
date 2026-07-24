@@ -5,11 +5,11 @@ import time
 from datetime import datetime
 
 # ==========================
-# 根目录（你可以改成自己的路径）
+# 输出目录（你指定的路径）
 # ==========================
-root_dir = "/home/pi/barcode_cam"
-csv_file = os.path.join(root_dir, "scan_log.csv")
-photo_dir = os.path.join(root_dir, "photos")
+output_dir = "/home/rp01/rp01-rp/output1"
+csv_file = os.path.join(output_dir, "scan_log.csv")
+photo_dir = output_dir  # 照片也放同一个目录
 
 # ==========================
 # 可配置参数
@@ -19,12 +19,12 @@ photo_delay = 0.4        # 每张照片之间的延迟（秒）
 camera_index = 0         # USB 摄像头一般是 0
 
 # ==========================
-# 初始化目录
+# 创建目录
 # ==========================
-os.makedirs(photo_dir, exist_ok=True)
+os.makedirs(output_dir, exist_ok=True)
 
 # ==========================
-# 初始化摄像头（树莓派更稳健的方式）
+# 初始化摄像头（树莓派更稳健）
 # ==========================
 def init_camera():
     cam = cv2.VideoCapture(camera_index)
@@ -32,7 +32,7 @@ def init_camera():
     cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     cam.set(cv2.CAP_PROP_FPS, 30)
 
-    time.sleep(0.5)  # 给摄像头一点时间初始化
+    time.sleep(0.5)  # 给摄像头一点初始化时间
 
     if not cam.isOpened():
         raise RuntimeError("无法打开摄像头，请检查 USB 连接")
@@ -42,21 +42,20 @@ def init_camera():
 camera = init_camera()
 
 # ==========================
-# 拍照函数
+# 拍照函数（无 global，更专业）
 # ==========================
-def take_photos(barcode):
-    global camera   # 必须放在函数最前面
-
+def take_photos(cam, barcode):
     photo_paths = []
 
     for i in range(photo_count):
-        camera.read()  # 丢弃缓存帧
+        # 丢弃缓存帧（树莓派 USB 摄像头常见问题）
+        cam.read()
 
-        ret, frame = camera.read()
+        ret, frame = cam.read()
         if not ret:
             print("⚠️ 摄像头读取失败，尝试重新初始化摄像头...")
             time.sleep(0.5)
-            camera = init_camera()   # 这里才重新赋值
+            cam = init_camera()
             continue
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
@@ -68,7 +67,7 @@ def take_photos(barcode):
 
         time.sleep(photo_delay)
 
-    return photo_paths
+    return photo_paths, cam
 
 # ==========================
 # 主程序
@@ -89,7 +88,7 @@ with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
             # 拍照
-            photo_paths = take_photos(barcode)
+            photo_paths, camera = take_photos(camera, barcode)
 
             # 写入 CSV
             writer.writerow([timestamp, barcode, ";".join(photo_paths)])
