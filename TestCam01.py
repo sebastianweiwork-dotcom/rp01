@@ -1,75 +1,108 @@
-import cv2
+import csv
 import os
+import cv2
+import time
 from datetime import datetime
 
 # ==========================
-# 输出目录
+# 根目录（树莓派路径）
 # ==========================
-output_dir = "/home/rp01/CamTest"
-os.makedirs(output_dir, exist_ok=True)
+root_dir = "/home/rp01/rp01-rp/TestCam"
 
-result_path = os.path.join(output_dir, "result.txt")
-
-# ==========================
-# 自动生成序号
-# ==========================
-def get_next_index():
-    files = os.listdir(output_dir)
-    jpg_files = [f for f in files if f.endswith(".jpg")]
-
-    if not jpg_files:
-        return 1
-
-    indices = []
-    for f in jpg_files:
-        try:
-            idx = int(f.split("_")[0])
-            indices.append(idx)
-        except:
-            pass
-
-    return max(indices) + 1 if indices else 1
+csv_file = os.path.join(root_dir, "scan_log.csv")
+photo_dir = os.path.join(root_dir, "photos")
 
 # ==========================
-# 初始化摄像头（强制使用 V4L2，避免 GStreamer 警告）
+# 可配置参数
 # ==========================
-def init_camera():
-    cam = cv2.VideoCapture(0, cv2.CAP_V4L2)  # 强制使用 V4L2 backend
-    cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-    cam.set(cv2.CAP_PROP_FPS, 30)
-    cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))  # USB 摄像头最稳定格式
-    return cam
-
-camera = init_camera()
+photo_count = 3          # 每次拍照数量
+photo_delay = 0.5        # 每张照片之间的延迟（秒）
 
 # ==========================
-# 拍照测试
+# 自动检测摄像头（树莓派使用 V4L2）
 # ==========================
-index = get_next_index()
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-photo_name = f"{index}_{timestamp}.jpg"
-photo_path = os.path.join(output_dir, photo_name)
+def find_camera_index(max_test=10):
+    """自动检测树莓派可用摄像头编号（V4L2）"""
+    for i in range(max_test):
+        cap = cv2.VideoCapture(i, cv2.CAP_V4L2)
+        if cap.isOpened():
+            ret, frame = cap.read()
+            if ret:
+                cap.release()
+                print(f"找到摄像头: index={i}")
+                return i
+        cap.release()
+    return None
 
-with open(result_path, "a") as f:
+cam_index = find_camera_index()
 
-    if not camera.isOpened():
-        msg = "❌ 摄像头无法打开\n"
-        f.write(msg)
-        print(msg)
-    else:
-        camera.read()  # 丢弃缓存帧
+if cam_index is None:
+    raise RuntimeError("❌ 未找到可用摄像头，请检查 USB 摄像头连接")
+
+print(f"✅ 使用摄像头编号: {cam_index}")
+
+# 初始化摄像头
+camera = cv2.VideoCapture(cam_index, cv2.CAP_V4L2)
+
+# 强制设置分辨率（USB 摄像头常用）
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
+# 创建图片目录
+os.makedirs(photo_dir, exist_ok=True)
+
+def take_photos(barcode):
+    """拍摄多张照片并返回路径列表"""
+    photo_paths = []
+    for i in range(photo_count):
         ret, frame = camera.read()
+        if ret:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+            filename = f"{barcode}_{timestamp}_{i+1}.jpg"
+            filepath = os.path.join(photo_dir, filename)
 
-        if not ret:
-            msg = "❌ 摄像头已打开，但无法读取画面\n"
-            f.write(msg)
-            print(msg)
+            # 保存图片
+            ok = cv2.imwrite(filepath, frame)
+            if ok:
+                photo_paths.append(filepath)
+                print(f"📸 保存图片: {filepath}")
+            else:
+                print(f"❌ 图片保存失败: {filepath}")
         else:
-            cv2.imwrite(photo_path, frame)
-            msg = f"✅ 成功拍照: {photo_name}\n"
-            f.write(msg)
-            print(msg)
+            print("⚠ 摄像头读取失败，跳过此张照片")
 
-camera.release()
-cv2.destroyAllWindows()
+        time.sleep(photo_delay)
+
+    return photo_paths
+
+# ==========================
+# 主程序
+# ==========================
+print("开始监听扫码器输入（输入 quit 退出）...")
+print(f"📁 保存目录: {root_dir}")
+
+# 打开 CSV 文件
+with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
+    writer = csv.writer(f)
+
+    while True:
+        try:
+            barcode = input()
+
+            if barcode.lower() in ["quit", "exit"]:
+                print("退出程序")
+                break
+
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+            # 拍照
+            photo_paths = take_photos(barcode)
+
+            # 写入 CSV：时间戳、条码、图片路径列表
+            writer.writerow([timestamp, barcode, ";".join(photo_paths)])
+
+            print(f"{timestamp} | {barcode}")
+
+        except KeyboardInterrupt:
+            print("退出程序")
+            break
