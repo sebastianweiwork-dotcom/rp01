@@ -5,103 +5,142 @@ import time
 from datetime import datetime
 
 # ==========================
-# 输出目录（你指定的路径）
+# 根目录（树莓派路径）
 # ==========================
-output_dir = "/home/rp01/rp01-rp/output1"
-csv_file = os.path.join(output_dir, "scan_log.csv")
-photo_dir = output_dir  # 照片也放同一个目录
+root_dir = "/home/rp01/rp01-rp/output01"
+
+csv_dir = root_dir
+photo_dir = os.path.join(root_dir, "photos")
 
 # ==========================
 # 可配置参数
 # ==========================
 photo_count = 3          # 每次拍照数量
-photo_delay = 0.4        # 每张照片之间的延迟（秒）
-camera_index = 0         # USB 摄像头一般是 0
+photo_delay = 0.5        # 每张照片之间的延迟（秒）
+use_default_resolution = True   # 使用摄像头默认分辨率（可调）
 
 # ==========================
-# 创建目录
+# 自动检测摄像头（树莓派使用 V4L2）
 # ==========================
-os.makedirs(output_dir, exist_ok=True)
+def find_camera_index(max_test=10):
+    """自动检测树莓派可用摄像头编号（V4L2）"""
+    for i in range(max_test):
+        cap = cv2.VideoCapture(i, cv2.CAP_V4L2)
+        if cap.isOpened():
+            ret, frame = cap.read()
+            if ret:
+                cap.release()
+                print(f"找到摄像头: index={i}")
+                return i
+        cap.release()
+    return None
+
+cam_index = find_camera_index()
+
+if cam_index is None:
+    raise RuntimeError("❌ 未找到可用摄像头，请检查 USB 摄像头连接")
+
+print(f"✅ 使用摄像头编号: {cam_index}")
+
+# 初始化摄像头
+camera = cv2.VideoCapture(cam_index, cv2.CAP_V4L2)
+
+# 使用摄像头默认分辨率（可调）
+if not use_default_resolution:
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
+# 创建图片目录
+os.makedirs(photo_dir, exist_ok=True)
 
 # ==========================
-# 初始化摄像头（树莓派更稳健）
+# CSV 文件命名（每次运行生成一个新的）
 # ==========================
-def init_camera():
-    cam = cv2.VideoCapture(camera_index)
-    cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-    cam.set(cv2.CAP_PROP_FPS, 30)
+session_start_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+csv_file = os.path.join(csv_dir, f"{session_start_time}_session.csv")
 
-    time.sleep(0.5)  # 给摄像头一点初始化时间
-
-    if not cam.isOpened():
-        raise RuntimeError("无法打开摄像头，请检查 USB 连接")
-
-    return cam
-
-camera = init_camera()
+print(f"📄 本次日志文件: {csv_file}")
 
 # ==========================
-# 拍照函数（无 global，更专业）
+# 拍照函数（保存 PNG）
 # ==========================
-def take_photos(cam, barcode):
+def take_photos(barcode):
+    """拍摄多张照片并返回路径列表"""
     photo_paths = []
-
     for i in range(photo_count):
-        # 丢弃缓存帧（树莓派 USB 摄像头常见问题）
-        cam.read()
+        ret, frame = camera.read()
+        if ret:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+            filename = f"{barcode}_{timestamp}_{i+1}.png"
+            filepath = os.path.join(photo_dir, filename)
 
-        ret, frame = cam.read()
-        if not ret:
-            print("⚠️ 摄像头读取失败，尝试重新初始化摄像头...")
-            time.sleep(0.5)
-            cam = init_camera()
-            continue
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
-        filename = f"{barcode}_{timestamp}_{i+1}.jpg"
-        filepath = os.path.join(photo_dir, filename)
-
-        cv2.imwrite(filepath, frame)
-        photo_paths.append(filepath)
+            # 保存 PNG（无损）
+            ok = cv2.imwrite(filepath, frame)
+            if ok:
+                photo_paths.append(filepath)
+                print(f"📸 保存图片: {filepath}")
+            else:
+                print(f"❌ 图片保存失败: {filepath}")
+        else:
+            print("⚠ 摄像头读取失败，跳过此张照片")
 
         time.sleep(photo_delay)
 
-    return photo_paths, cam
+    return photo_paths
 
 # ==========================
 # 主程序
 # ==========================
-print("📡 开始监听扫码器输入（输入 quit 退出）...")
+print("开始监听扫码器输入（输入 quit 退出）...")
+print(f"📁 保存目录: {root_dir}")
+
+first_scan_time = None
+first_scan_content = None
+last_scan_time = None
+last_scan_content = None
 
 with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
 
     while True:
         try:
-            barcode = input().strip()
+            barcode = input()
 
             if barcode.lower() in ["quit", "exit"]:
-                print("👋 程序退出")
+                print("退出程序")
                 break
 
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
-            # 拍照
-            photo_paths, camera = take_photos(camera, barcode)
+            # 记录第一次扫码
+            if first_scan_time is None:
+                first_scan_time = timestamp
+                first_scan_content = barcode
 
-            # 写入 CSV
+            # 记录最后一次扫码
+            last_scan_time = timestamp
+            last_scan_content = barcode
+
+            # 拍照
+            photo_paths = take_photos(barcode)
+
+            # 写入 CSV：时间戳、条码、图片路径列表
             writer.writerow([timestamp, barcode, ";".join(photo_paths)])
-            f.flush()
-            os.fsync(f.fileno())
 
             print(f"{timestamp} | {barcode}")
-            for p in photo_paths:
-                print(f"  📷 保存图片: {p}")
 
         except KeyboardInterrupt:
-            print("👋 程序退出（Ctrl+C）")
+            print("退出程序")
             break
 
-camera.release()
-cv2.destroyAllWindows()
+# ==========================
+# 程序结束后重命名 CSV 文件
+# ==========================
+if first_scan_time and last_scan_time:
+    new_csv_name = f"{first_scan_time}_{first_scan_content}_{last_scan_time}_{last_scan_content}.csv"
+    new_csv_path = os.path.join(csv_dir, new_csv_name)
+
+    os.rename(csv_file, new_csv_path)
+    print(f"📄 日志文件已重命名为: {new_csv_path}")
+else:
+    print("⚠ 本次运行没有扫码，不生成日志文件名")
