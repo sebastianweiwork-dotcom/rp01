@@ -20,7 +20,6 @@ def get_next_index():
     if not jpg_files:
         return 1
 
-    # 从文件名中提取序号
     indices = []
     for f in jpg_files:
         try:
@@ -32,13 +31,14 @@ def get_next_index():
     return max(indices) + 1 if indices else 1
 
 # ==========================
-# 初始化摄像头
+# 初始化摄像头（强制使用 V4L2，避免 GStreamer 警告）
 # ==========================
 def init_camera():
-    cam = cv2.VideoCapture(0)
+    cam = cv2.VideoCapture(0, cv2.CAP_V4L2)  # 强制使用 V4L2 backend
     cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     cam.set(cv2.CAP_PROP_FPS, 30)
+    cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))  # USB 摄像头最稳定格式
     return cam
 
 camera = init_camera()
