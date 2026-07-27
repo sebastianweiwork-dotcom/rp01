@@ -8,8 +8,10 @@ from datetime import datetime
 # Parameter Section (ALL configurable parameters)
 # ==========================
 root_dir = "/home/rp01/rp01-rp/output01"   # Root output directory
-photo_count = 3                            # Number of photos per scan
-photo_delay = 0.5                          # Delay between photos (seconds)
+
+# New: delay array for each photo (拍照间隔数组)
+# 拍照数量 = len(photo_delays)
+photo_delays = [0.3, 0.8, 1.5]             # Delay between each photo (seconds)
 
 use_default_resolution = True              # Use camera default resolution
 force_resolution_enabled = False           # Force custom resolution
@@ -79,12 +81,13 @@ print(f"Temporary CSV file: {csv_file}")
 print(f"Temporary photo folder: {temp_photo_folder}")
 
 # ==========================
-# Photo capture function (PNG)
+# Photo capture function (PNG) — upgraded with delay array
 # ==========================
 def take_photos(barcode, photo_folder):
-    """Capture multiple photos and return file path list."""
+    """Capture multiple photos using variable delays and return file path list."""
     photo_paths = []
-    for i in range(photo_count):
+
+    for i, delay in enumerate(photo_delays):
         ret, frame = camera.read()
         if ret:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
@@ -100,7 +103,9 @@ def take_photos(barcode, photo_folder):
         else:
             print("Camera read failed. Skipping this photo.")
 
-        time.sleep(photo_delay)
+        # Apply variable delay
+        print(f"Waiting {delay} seconds before next photo...")
+        time.sleep(delay)
 
     return photo_paths
 
