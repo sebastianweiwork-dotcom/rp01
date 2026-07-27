@@ -10,13 +10,13 @@ from datetime import datetime
 root_dir = "/home/rp01/rp01-rp/output01"
 
 # New: delay array for each photo (拍照间隔数组)
-photo_delays = [0.3, 0.8, 1.5]             # Delay between each photo (seconds)
+photo_delays = [0.3, 0.4, 0.5]             # Delay between each photo (seconds)
 
 # New: scan cooldown time (扫描冷却时间)
 scan_cooldown = 1.0                       # Seconds to ignore repeated scans
 
 use_default_resolution = True
-force_resolution_enabled = False
+force_resolution_enabled = True
 force_resolution_width = 1920
 force_resolution_height = 1080
 
