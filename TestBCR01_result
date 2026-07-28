@@ -1,0 +1,108 @@
+
+
+==================== Test Session Start ====================
+Timestamp: 2026-07-28 12:31:00
+Log file path: /home/rp01/rp01-rp/TestBCR01_result.txt
+
+============================================================
+Laser Barcode Scanner Connection Test Start
+============================================================
+
+============================================================
+Step 1: Checking USB device list
+============================================================
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 002: ID 1a40:0101 Terminus Technology Inc. Hub
+Bus 001 Device 004: ID 0c45:636f Microdia UGREEN Camera 2K
+Bus 001 Device 005: ID 046d:c34b Logitech, Inc. USB Keyboard
+Bus 001 Device 006: ID 046d:c077 Logitech, Inc. Mouse
+Bus 001 Device 009: ID 04e8:6863 Samsung Electronics Co., Ltd Galaxy series, misc. (tethering mode)
+
+
+============================================================
+Step 2: Checking serial devices (/dev/ttyUSB* /dev/ttyACM*)
+============================================================
+No serial devices detected
+
+============================================================
+Final Result: No serial devices detected
+============================================================
+Possible reasons:
+ - Scanner is operating in HID keyboard mode
+ - USB cable is power-only and does not support data
+ - Scanner is not properly connected or is damaged
+Recommendation: Switch scanner to serial mode if possible
+==================== Test Session End ====================
+
+
+
+==================== Test Session Start ====================
+Timestamp: 2026-07-28 12:31:40
+Log file path: /home/rp01/rp01-rp/TestBCR01_result.txt
+
+============================================================
+Laser Barcode Scanner Connection Test Start
+============================================================
+
+============================================================
+Step 1: Checking USB device list
+============================================================
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 002: ID 1a40:0101 Terminus Technology Inc. Hub
+Bus 001 Device 005: ID 046d:c34b Logitech, Inc. USB Keyboard
+Bus 001 Device 006: ID 046d:c077 Logitech, Inc. Mouse
+Bus 001 Device 009: ID 04e8:6863 Samsung Electronics Co., Ltd Galaxy series, misc. (tethering mode)
+Bus 001 Device 010: ID 0c2e:118f Metrologic Instruments CCB
+
+
+============================================================
+Step 2: Checking serial devices (/dev/ttyUSB* /dev/ttyACM*)
+============================================================
+No serial devices detected
+
+============================================================
+Final Result: No serial devices detected
+============================================================
+Possible reasons:
+ - Scanner is operating in HID keyboard mode
+ - USB cable is power-only and does not support data
+ - Scanner is not properly connected or is damaged
+Recommendation: Switch scanner to serial mode if possible
+==================== Test Session End ====================
+
+
+
+==================== Test Session Start ====================
+Timestamp: 2026-07-28 12:51:09
+Log file path: /home/rp01/rp01-rp/TestBCR01_result.txt
+
+============================================================
+Laser Barcode Scanner Connection Test Start
+============================================================
+
+============================================================
+Step 1: Checking USB device list
+============================================================
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 002: ID 1a40:0101 Terminus Technology Inc. Hub
+Bus 001 Device 005: ID 046d:c34b Logitech, Inc. USB Keyboard
+Bus 001 Device 006: ID 046d:c077 Logitech, Inc. Mouse
+Bus 001 Device 009: ID 04e8:6863 Samsung Electronics Co., Ltd Galaxy series, misc. (tethering mode)
+Bus 001 Device 010: ID 0c2e:118f Metrologic Instruments CCB
+
+
+============================================================
+Step 2: Checking serial devices (/dev/ttyUSB* /dev/ttyACM*)
+============================================================
+No serial devices detected
+
+============================================================
+Final Result: No serial devices detected
+============================================================
+Possible reasons:
+ - Scanner is operating in HID keyboard mode
+ - USB cable is power-only and does not support data
+ - Scanner is not properly connected or is damaged
+Recommendation: Switch scanner to serial mode if possible
+==================== Test Session End ====================
+
