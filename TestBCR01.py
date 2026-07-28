@@ -4,19 +4,26 @@ import time
 import serial
 import subprocess
 
+LOG_FILE = "TestBCR01_result.txt"
+
+def log(message):
+    """Print to console and write to log file."""
+    print(message)
+    with open(LOG_FILE, "a") as f:
+        f.write(message + "\n")
+
 def print_section(title):
-    print("\n" + "="*60)
-    print(title)
-    print("="*60)
+    section_header = "\n" + "="*60 + "\n" + title + "\n" + "="*60
+    log(section_header)
 
 def list_usb_devices():
     print_section("Step 1: Checking USB device list")
     try:
         output = subprocess.check_output(["lsusb"]).decode()
-        print(output)
+        log(output)
         return output
     except Exception as e:
-        print(f"Failed to read USB device list: {e}")
+        log(f"Failed to read USB device list: {e}")
         return ""
 
 def find_serial_ports():
@@ -28,51 +35,56 @@ def find_serial_ports():
             if os.path.exists(dev):
                 ports.append(dev)
     if ports:
-        print("Detected serial devices:")
+        log("Detected serial devices:")
         for p in ports:
-            print(" -", p)
+            log(" - " + p)
     else:
-        print("No serial devices detected")
+        log("No serial devices detected")
     return ports
 
 def test_serial_read(port):
     print_section(f"Step 3: Attempting to read from serial port ({port})")
     try:
         ser = serial.Serial(port, baudrate=9600, timeout=1)
-        print(f"Successfully opened serial port {port}")
-        print("Waiting for barcode scanner data (please scan a code)...")
+        log(f"Successfully opened serial port {port}")
+        log("Waiting for barcode scanner data (please scan a code)...")
         data = ser.readline().decode(errors="ignore").strip()
         if data:
-            print(f"Received scanner data: {data}")
-            print("Test result: Scanner connection OK")
+            log(f"Received scanner data: {data}")
+            log("Test result: Scanner connection OK")
         else:
-            print("No data received. Try scanning a barcode.")
-            print("Test result: Serial port OK but no scanner data received")
+            log("No data received. Try scanning a barcode.")
+            log("Test result: Serial port OK but no scanner data received")
         ser.close()
     except Exception as e:
-        print(f"Failed to open serial port {port}: {e}")
-        print("Test result: Serial port open failed, scanner may not be connected")
+        log(f"Failed to open serial port {port}: {e}")
+        log("Test result: Serial port open failed, scanner may not be connected")
 
 def main():
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    log("\n\n==================== Test Session Start ====================")
+    log(f"Timestamp: {timestamp}")
+
     print_section("Laser Barcode Scanner Connection Test Start")
 
     usb_info = list_usb_devices()
-
     ports = find_serial_ports()
 
     if not ports:
         print_section("Final Result: No serial devices detected")
-        print("Possible reasons:")
-        print(" - Scanner is operating in HID keyboard mode")
-        print(" - USB cable is power-only and does not support data")
-        print(" - Scanner is not properly connected or is damaged")
-        print("Recommendation: Switch scanner to serial mode if possible")
+        log("Possible reasons:")
+        log(" - Scanner is operating in HID keyboard mode")
+        log(" - USB cable is power-only and does not support data")
+        log(" - Scanner is not properly connected or is damaged")
+        log("Recommendation: Switch scanner to serial mode if possible")
+        log("==================== Test Session End ====================\n")
         return
 
     for port in ports:
         test_serial_read(port)
 
     print_section("Test Completed")
+    log("==================== Test Session End ====================\n")
 
 if __name__ == "__main__":
     main()
