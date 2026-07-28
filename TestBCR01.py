@@ -4,13 +4,16 @@ import time
 import serial
 import subprocess
 
-LOG_FILE = "TestBCR01_result.txt"
+LOG_FILE = "/home/rp01/rp01-rp/TestBCR01_result.txt"
 
 def log(message):
     """Print to console and write to log file."""
     print(message)
-    with open(LOG_FILE, "a") as f:
-        f.write(message + "\n")
+    try:
+        with open(LOG_FILE, "a") as f:
+            f.write(message + "\n")
+    except Exception as e:
+        print(f"Failed to write log file: {e}")
 
 def print_section(title):
     section_header = "\n" + "="*60 + "\n" + title + "\n" + "="*60
@@ -64,6 +67,7 @@ def main():
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     log("\n\n==================== Test Session Start ====================")
     log(f"Timestamp: {timestamp}")
+    log(f"Log file path: {LOG_FILE}")
 
     print_section("Laser Barcode Scanner Connection Test Start")
 
