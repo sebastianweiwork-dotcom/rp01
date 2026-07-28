@@ -37,6 +37,5 @@ def check_camera_connection(url):
     cap.release()
     return frame
 
-
 if __name__ == "__main__":
     check_camera_connection(CAMERA_URL)
