@@ -74,6 +74,7 @@ def main():
     usb_info = list_usb_devices()
     ports = find_serial_ports()
 
+
     if not ports:
         print_section("Final Result: No serial devices detected")
         log("Possible reasons:")
